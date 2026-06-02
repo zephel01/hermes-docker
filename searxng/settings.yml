@@ -1,0 +1,57 @@
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: "Hermes SearXNG"
+  contact_url: false
+  enable_metrics: false
+
+server:
+  secret_key: "9025ee5396cf841205c5e5dd4dd6b225f2c954bb081f37be0b5af747acedfc7b"
+  base_url: false
+  port: 8080
+  bind_address: "0.0.0.0"
+  limiter: false
+  image_proxy: false
+  http_protocol_version: "1.0"
+
+ui:
+  static_use_hash: true
+  query_in_title: false
+  infinite_scroll: false
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: ""
+  formats:
+    - html
+    - json
+
+engines:
+  - name: duckduckgo
+    disabled: false
+  - name: google
+    disabled: false
+  - name: bing
+    disabled: false
+  - name: brave
+    disabled: false
+  - name: wikipedia
+    disabled: false
+  - name: github
+    disabled: false
+  - name: stackoverflow
+    disabled: false
+  - name: ahmia
+    disabled: true
+  - name: torch
+    disabled: true
+  - name: wikidata
+    disabled: true
+
+outgoing:
+  request_timeout: 5.0
+  max_request_timeout: 10.0
+  pool_connections: 100
+  pool_maxsize: 20

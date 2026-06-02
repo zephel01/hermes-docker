@@ -1,0 +1,120 @@
+services:
+  hermes-agent:
+    image: nousresearch/hermes-agent:main
+    container_name: hermes-agent
+    command: gateway run
+    restart: unless-stopped
+    #network_mode: host
+    ports:
+      - "127.0.0.1:8642:8642"
+    environment:
+      - HERMES_HOME=/home/hermes/.hermes
+      - HERMES_UID=${HOST_UID:-1000}
+      - HERMES_GID=${HOST_GID:-1000}
+      # Web search/extract secrets (SEARXNG_URL, FIRECRAWL_API_KEY) live in
+      # ~/.hermes/.env — single source of truth read by BOTH the gateway agent
+      # and the WebUI's in-process agent. Don't duplicate them here or they
+      # drift and the WebUI chat loses web tools.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ${HOME}/.hermes:/home/hermes/.hermes
+      # NOTE: named volume `hermes-agent-src` re-seeds /opt/hermes from the
+      # image ONLY on first creation. After `docker compose pull` the volume
+      # stays on the old image's contents → init scripts can exit 127 and the
+      # container enters a restart loop. Recovery: stop both agent+webui,
+      # remove this volume, `compose up -d`. See TROUBLESHOOTING §9.
+      - hermes-agent-src:/opt/hermes
+    networks:
+      - hermes-net
+    depends_on:
+      searxng:
+        condition: service_healthy
+    healthcheck:
+      # No HTTP surface — gateway is messaging/cron only (port 8642 mapping
+      # is currently unused). Process-based check catches init failures (the
+      # exit-127 staleness loop) and post-start crashes that s6 can't restore.
+      test: ["CMD-SHELL", "pgrep -f 'hermes gateway run' >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+
+  hermes-webui:
+    build: ./hermes-webui
+    container_name: hermes-webui
+    restart: unless-stopped
+    depends_on:
+      hermes-agent:
+        condition: service_healthy
+    env_file:
+      # IMPORTANT: ./hermes-webui/.env is only for webui-process settings
+      # (ports, UI toggles). Tool secrets — SEARXNG_URL, FIRECRAWL_API_KEY,
+      # EXA_API_KEY, etc. — MUST live in ~/.hermes/.env so BOTH the gateway
+      # agent and the webui's in-process agent see them. Duplicating here
+      # creates a split-brain where the webui chat loses web tools.
+      # See TROUBLESHOOTING §3.
+      - ./hermes-webui/.env
+    ports:
+      - "127.0.0.1:8787:8787"
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,mode=1777
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ${HOME}/.hermes:/home/hermeswebui/.hermes
+      # Shares hermes-agent's /opt/hermes — same staleness caveat applies
+      # (see hermes-agent volume comment + TROUBLESHOOTING §9).
+      - hermes-agent-src:/home/hermeswebui/.hermes/hermes-agent
+      - ${HOME}/workspace:/workspace
+    networks:
+      - hermes-net
+
+  hermes-hudui:
+    build:
+      # Build context = the hermes-hudui submodule checkout (the upstream
+      # joeynyc/hermes-hudui has no Dockerfile, so we keep one in
+      # ./dockerfiles/ at the repo root). BuildKit (default on Docker 23+)
+      # allows the dockerfile path to escape the context with `../`.
+      context: ./hermes-hudui
+      dockerfile: ../dockerfiles/hudui.Dockerfile
+    container_name: hermes-hudui
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3001"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - HERMES_HOME=/root/.hermes
+    volumes:
+      - ${HOME}/.hermes:/root/.hermes
+    networks:
+      - hermes-net
+
+  searxng:
+    image: searxng/searxng:latest
+    container_name: searxng
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+      - SEARXNG_SECRET_KEY=${SEARXNG_SECRET_KEY:?set SEARXNG_SECRET_KEY in .env}
+      - UWSGI_WORKERS=2
+      - UWSGI_THREADS=4
+    networks:
+      - hermes-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  hermes-net:
+    driver: bridge
+
+volumes:
+  hermes-agent-src:

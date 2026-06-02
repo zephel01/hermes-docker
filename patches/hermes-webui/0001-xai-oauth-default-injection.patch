@@ -1,0 +1,24 @@
+diff --git a/api/config.py b/api/config.py
+index 27de96d..d0d1796 100644
+--- a/api/config.py
++++ b/api/config.py
+@@ -3429,7 +3429,18 @@ def get_available_models() -> dict:
+                             g["models"].insert(0, {"id": default_model, "label": label})
+                             injected = True
+                             break
+-                    if not injected and groups:
++                    # NOTE(hermes-docker local patch): inject even when `groups`
++                    # is EMPTY (dropped the original `and groups` guard). An
++                    # OAuth/portal provider such as `xai-oauth` has no static
++                    # _PROVIDER_MODELS catalog (the key is `x-ai`) and isn't
++                    # canonicalised to it, so the group-building loop produces
++                    # zero groups. Without this, the configured default model
++                    # (e.g. grok-4.3) never reaches the picker, and the frontend
++                    # live-fetch is gated behind a non-empty groups list
++                    # (static/ui.js early-return at "keep HTML defaults").
++                    # Injecting the default makes groups non-empty so the live
++                    # fetch then fills in the rest of the provider's models.
++                    if not injected:
+                         groups.append(
+                             {
+                                 "provider": "Default",

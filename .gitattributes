@@ -1,0 +1,10 @@
+# Shell scripts must keep LF endings even when checked out on Windows
+# (Git for Windows defaults to core.autocrlf=true, which would otherwise
+# convert them to CRLF and break the shebang line).
+*.sh   text eol=lf
+*.bash text eol=lf
+
+# Patches and Dockerfiles also rely on LF
+*.patch     text eol=lf
+Dockerfile  text eol=lf
+*.Dockerfile text eol=lf

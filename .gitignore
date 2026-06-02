@@ -1,0 +1,11 @@
+# Compose variable file — contains SEARXNG_SECRET_KEY and host-specific
+# HOST_UID / HOST_GID. Each clone re-creates this from README §3-2.
+.env
+
+# Claude Code session-local data
+.claude/
+
+# macOS / editor cruft
+.DS_Store
+*.swp
+*~
