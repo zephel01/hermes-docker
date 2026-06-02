@@ -166,11 +166,25 @@
 
 ## 3. 初回構築手順
 
+> 💡 **§3-1 から §3-3 までは `scripts/setup.sh` で自動化できる**。
+> 対話的だが idempotent で、既存設定（`.env` の `HOST_UID/HOST_GID/SEARXNG_SECRET_KEY`、
+> `~/.hermes/.env` の内容）は保持する。`-y` で全 prompt を yes 扱い。
+> シェルへの `hermes-docker` alias インストールまで一気に終わる（§5-0）。
+>
+> ```bash
+> ./scripts/setup.sh         # 対話あり
+> ./scripts/setup.sh -y      # 自動 yes
+> ```
+>
+> 何が走るか / どこを触るかは [`scripts/setup.sh`](../scripts/setup.sh) の冒頭コメント参照。
+> 以下の §3-1〜§3-3 は **手動で同じことをする手順**（理解用 / setup.sh が
+> 何らかの理由で使えない時用）。§3-4 以降は手動。
+
 ### 3-1. clone と submodule + パッチの bootstrap（最重要）
 
 ```bash
 # 推奨: clone と同時に submodule も取る
-git clone --recurse-submodules <this-repo-url> hermes-docker
+git clone --recurse-submodules https://github.com/zephel01/hermes-docker.git
 cd hermes-docker
 
 # 既に --recurse-submodules 抜きで clone してしまった場合

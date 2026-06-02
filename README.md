@@ -64,9 +64,23 @@
 > macOS 以外は `HOST_UID` / `HOST_GID` を必ず自分のホストに合わせること
 > （[詳細](docs/setup.md#1-1-プラットフォーム別の差macos--linux--wsl2)）。
 
+### ⚡ 一発セットアップ（推奨）
+
+```bash
+git clone --recurse-submodules https://github.com/zephel01/hermes-docker.git
+cd hermes-docker
+./scripts/setup.sh                    # ↓ の手動手順 1–5 を idempotent に自動化
+$EDITOR ~/.hermes/.env                # LLM API キーを書き込む
+docker compose pull && docker compose build && docker compose up -d
+```
+
+`setup.sh` がやること: prereq チェック → submodule + patch bootstrap → `~/.hermes/`/`~/workspace/` 作成 → `./.env` 生成（既存値は保持） → `~/.hermes/.env` 雛形作成（mode 0600） → webui パスワード placeholder の警告 → `hermes-docker` alias を `~/.zshrc` または `~/.bashrc` に挿入。`-y` で全 prompt 自動 yes。
+
+### 手動セットアップ
+
 ```bash
 # 1) clone (submodule 込みで取得)
-git clone --recurse-submodules <this-repo-url> hermes-docker
+git clone --recurse-submodules https://github.com/zephel01/hermes-docker.git
 cd hermes-docker
 
 # 2) submodule + ローカルパッチを bootstrap (idempotent)
